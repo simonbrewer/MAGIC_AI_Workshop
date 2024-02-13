@@ -1,4 +1,4 @@
-"season","yr","mnth","holiday","weekday","workingday","weathersit","temp","hum","windspeed","cnt","days_since_2011"
+"season","yr","mnth","holiday","weekday","workingday","weathersit","temp","hum","windspeed","count","days_since_2011"
 "WINTER","2011","JAN","NO HOLIDAY","SAT","NO WORKING DAY","MISTY",8.175849,80.5833,10.749882,985,0
 "WINTER","2011","JAN","NO HOLIDAY","SUN","NO WORKING DAY","MISTY",9.083466,69.6087,16.652113,801,1
 "WINTER","2011","JAN","NO HOLIDAY","MON","WORKING DAY","GOOD",1.229108,43.7273,16.636703,1349,2

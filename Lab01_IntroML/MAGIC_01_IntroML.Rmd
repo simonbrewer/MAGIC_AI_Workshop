@@ -1,0 +1,246 @@
+---
+title: "MAGIC AI Workshop 01 Introduction to machine learning"
+author: "Simon Brewer"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(1234)
+```
+
+## Introduction
+
+In this lab, we will introduce the basics of machine learning in R. We'll cover some data exploration, designing a machine learning workflow (including a cross-validation strategy and performance metric) and look at how to try different algorithms. We'll also look briefly at making predictions with our model and exploring the results of the model. 
+
+The data we will use contains daily counts of rented bicycles from the bicycle rental company Capital-Bikeshare in Washington D.C., along with weather and seasonal information. Our goal is to build a model to predict the count of bikes rented on any given day. Before starting the lab, you will need to set up a new folder for your working directory. Download the file *bike.csv* from github and move it to this folder. Now start R or Rstudio and set your working directory to this folder (if you're not sure how to do this, please ask). 
+
+Before we do anything else, we'll need to load a few add-ons to help. R has a large number of packages for individual machine learning algorithms, but also has a couple of meta-packages that are designed to manage a machine learning workflow. These meta-packages take care of setting up training and testing data, as well as evaluating the models. The package we will use is called **caret**, which is one of the oldest and best established. You will need to install this, as well as a couple of other useful packages. If these are already installed on your computer (you can check in the 'Packages' tab in RStudio), then you can skip this step. 
+
+```{r eval=FALSE}
+install.packages(c("caret", "tidyverse", "pdp", "vip", "patchwork", "skimr"))
+```
+
+Now load the first few packages:
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(skimr)
+```
+
+## Data
+
+We'll start by loading the data and carrying out some simple exploration. 
+
+```{r}
+bike <- read.csv("../datafiles/bike.csv")
+```
+
+Let's take a quick look at the data:
+
+```{r}
+head(bike)
+```
+
+And get some basic summary statistics using the **skimr** package:
+
+```{r}
+skim(bike)
+```
+
+We'll now make some plots to take a look at how the variables relate to the count of rental bikes. First, let's plot the time series of daily rentals. This shows a couple of things: a clear seasonal cycle and a long-term trend across the two years:
+
+```{r}
+ggplot(bike, aes(x = days_since_2011, y = count)) +
+  geom_line() +
+  theme_bw()
+```
+
+We can also look at the distribution by day of the week, month, holiday, etc. Note that we need to make sure R plots the days and months in the correct order by using a `factor` variable
+
+- Month:
+
+```{r}
+bike <- bike %>%
+  mutate(mnth = factor(mnth, levels = c("JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                                        "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")),
+         weekday = factor(weekday, levels = c("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"))
+         )
+ggplot(bike, aes(x = mnth, y = count)) +
+  geom_boxplot() +
+  theme_bw()
+```
+
+- Day of week: 
+
+```{r}
+ggplot(bike, aes(x = weekday, y = count)) +
+  geom_boxplot() +
+  theme_bw()
+```
+- Holidays and working days (this uses **patchwork** to combine figures):
+
+```{r}
+p1 = ggplot(bike, aes(x = workingday, y = count)) +
+  geom_boxplot() +
+  theme_bw()
+p2 = ggplot(bike, aes(x = holiday, y = count)) +
+  geom_boxplot() +
+  theme_bw()
+p1 + p2
+```
+
+
+Again we can see the clear seasonal cycle, as well as a slightly higher rate on non-holdiays. There's little to no variation across week days however. We can also use some scatter plots to show the relationship of rentals to environmental variables:
+
+
+```{r}
+p1 = ggplot(bike, aes(x = temp, y = count)) +
+  geom_point() +
+  theme_bw()
+p2 = ggplot(bike, aes(x = hum, y = count)) +
+  geom_point() +
+  theme_bw()
+p3 = ggplot(bike, aes(x = windspeed, y = count)) +
+  geom_point() +
+  theme_bw()
+(p2 + p3) / p1
+```
+
+It's difficult to make out much in the humidity and windspeed plots, except that rentals appear to decline at higher values. Rentals generally increase with temperature, but appear to decline at higher temps. Most of this makes sense: cycling in high wind speed or hot, humid conditions is generally less appealing. 
+
+```{r}
+ggplot(bike, aes(x = weathersit, y = count)) +
+  geom_boxplot() +
+  theme_bw()
+```
+
+
+## Machine learning
+
+We'll now build a machine learning model with these data. We'll model the rental numbers using the environmental data, months and holiday/non-holiday variables. 
+
+The general steps in constructing any ML model are:
+
+- Preprocess data
+- Set up cross-validation strategy
+- Train (and optionally tune) the model
+- Estimate the predictive skill through cross-validation
+
+We'll first walk through doing this by hand, then switch to using **caret** to help automate some of these steps
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(skimr)
+library(caret)
+library(ModelMetrics)
+library(randomForest)
+
+## Preprocessing
+bike2 = bike %>%
+  filter(hum > 0)
+
+## Cross-validation strategy
+train_id = createDataPartition(bike$count, p = 0.8)
+
+train = bike2[train_id[[1]], ] 
+test = bike2[-train_id[[1]], ] 
+
+nrow(train)
+nrow(test)
+
+## Train model
+### Define the model formula
+f1 <- count ~ temp + hum + windspeed + mnth + holiday + days_since_2011
+
+### Linear model
+fit_lm = lm(f1, data = train)
+summary(fit_lm)
+## Test predictive skill
+y_pred = predict(fit_lm, newdata = test)
+plot(test$count, y_pred)
+rmse(test$count, y_pred)
+
+### Random forest
+fit_rf = randomForest(f1, data = train)
+fit_rf
+## Test predictive skill
+y_pred = predict(fit_rf, newdata = test)
+plot(test$count, y_pred)
+rmse(test$count, y_pred)
+
+## Setting hyperparamter
+fit_rf = randomForest(f1, data = train, mtry = 3, ntree = 1000)
+fit_rf
+## Test predictive skill
+y_pred = predict(fit_rf, newdata = test)
+plot(test$count, y_pred)
+rmse(test$count, y_pred)
+
+## Cross-validation
+## K-fold
+fit_control = trainControl(method = "cv", number = 5)
+fit_lm_cv = train(f1, data = train, 
+                 method = "lm", 
+                 trControl = fit_control)
+fit_lm_cv
+fit_lm_cv$resample
+
+
+fit_rf_cv = train(f1, data = train, 
+                  method = "rf", 
+                  trControl = fit_control)
+fit_rf_cv
+fit_rf_cv$resample
+
+y_pred = predict(fit_lm_cv, newdata = test)
+plot(test$count, y_pred)
+rmse(test$count, y_pred)
+
+y_pred = predict(fit_rf_cv, newdata = test)
+plot(test$count, y_pred)
+rmse(test$count, y_pred)
+
+library(vip)
+vip(fit_rf_cv$finalModel)
+
+library(pdp)
+partial(fit_rf_cv, "temp", train = bike2)
+partial(fit_rf_cv, "temp", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+partial(fit_rf_cv, "hum", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+partial(fit_rf_cv, "windspeed", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+partial(fit_rf_cv, c("temp", "hum"), train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+```
+
+
+```{r}
+library(caret)
+```
+
+
+
+## Appendix 1: Bike rental dataset
+Bike rental dataset from https://christophm.github.io/interpretable-ml-book/bike-data.html:
+
+- `season`: The season, either spring, summer, fall or winter.
+- `year`: The year, either 2011 or 2012.
+- `mnth`: The month
+- `holiday`: Indicator whether the day was a holiday or not.
+- `weekday`: Day of week
+- `workingday`: Indicator whether the day was a working day or weekend.
+- `weathersit`: The weather situation on that day. One of:
+  - clear, few clouds, partly cloudy, cloudy
+  - mist + clouds, mist + broken clouds, mist + few clouds, mist, light snow, light rain + thunderstorm + scattered clouds, light rain + scattered clouds
+  - heavy rain + ice pallets + thunderstorm + mist, snow + mist
+- `temp`: Temperature in degrees Celsius.
+- `hum`: Relative humidity in percent (0 to 100).
+- `windspeed`: Wind speed in km per hour.
+- `count`: Count of bicycles including both casual and registered users. The count is used as the target in the regression task.
+- `days_since_2011`: Number of days since the 01.01.2011 (the first day in the dataset). This feature was introduced to take account of the trend over time.
+
