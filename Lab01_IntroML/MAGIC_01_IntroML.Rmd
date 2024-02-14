@@ -1,3 +1,4 @@
+
 ---
 title: "MAGIC AI Workshop 01 Introduction to machine learning"
 author: "Simon Brewer"
@@ -11,7 +12,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-set.seed(1234)
+set.seed(888)
 ```
 
 ## Introduction
@@ -22,9 +23,11 @@ Before starting, we'll define some vocabulary for the process of ML model buildi
 
 - Outcome or target: the variable that we are interested in predicting. The equivalent to covariates in a regression model
 - Features: the variables we will use to predict the outcome. Equivalent to covariates in regression models
-- Training: the process of estimating model weights to best map the features to the outcome
+- Training: the process of estimating model weights
 - Loss function: a measure of how well the predicted outcome ($\hat{y}$) maps to the observed outcome ($y$)
 - Performance metric: a measure of how well the model can predict for an *independent* dataset
+- Model weights: one or more values that are used to map the features to the outcome. The value of these is learned during the training process
+- Hyperparameters: algorithm-specific parameters that control the way that the algorithm learns or updates the weights
 
 The data we will use contains daily counts of rented bicycles from the bicycle rental company Capital-Bikeshare in Washington D.C., along with weather and seasonal information. Our goal is to build a model to predict the count of bikes rented on any given day (the count is the outcome). Before starting the lab, you will need to set up a new folder for your working directory. Download the file *bike.csv* from github and move it to this folder. Now start R or Rstudio and set your working directory to this folder (if you're not sure how to do this, please ask). 
 
@@ -36,7 +39,7 @@ install.packages(c("caret", "tidyverse", "pdp", "vip", "patchwork", "skimr"))
 
 Now load the first few packages:
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(patchwork)
 library(skimr)
@@ -190,20 +193,20 @@ nrow(test)
 
 ### Training the model
 
-Now we can go ahead and train a model. We'll start by using a simple linear regression model. These are considered to be included in machine learning algorithms (much to the annoyance of most statisticians). While these tend not to perform as well as more complex algorithms (tree methods, neural networks, etc), they are useful in providing a baseline model that complex models should improve on. Wee'll build it here using R's `lm()` function. Note that this takes a formula argument that describes the outcome and the features, separated by a tilde (`~`). As we'll use this through out this exercise, we'll create it and store for reuse:
+Now we can go ahead and train a model. We'll start by using a simple linear regression model. These are considered to be included in machine learning algorithms (much to the annoyance of most statisticians). While these tend not to perform as well as more complex algorithms (tree methods, neural networks, etc), they are useful in providing a baseline model that complex models should improve on. We'll build it here using R's `lm()` function. Note that this takes a formula argument that describes the outcome and the features, separated by a tilde (`~`). As we'll use this through out this exercise, we'll create it and store for reuse:
 
 ```{r}
 f1 <- count ~ temp + hum + windspeed + mnth + holiday + weathersit
 ```
 
-Now fit the model:
+Now fit the model using only the training data:
 
 ```{r}
 fit_lm = lm(f1, data = train)
 summary(fit_lm)
 ```
 
-In a statistical model, we'd spend some time looking at the coefficients, standard errors and $p$-values. In a ML model, we more interested in the predictive skill of the model, so we'll go on to check this now. First, we use the `predict()` function to estimate the bike rental count for each observation in the test set:
+In a statistical model, we'd spend some time looking at the coefficients, standard errors and $p$-values. In a ML model, we more interested in the predictive skill of the model, so we'll go on to check this now. First, we use the `predict()` function to estimate the bike rental count for each observation in the *test* set:
 
 ```{r}
 y_pred = predict(fit_lm, newdata = test)
@@ -215,12 +218,11 @@ We'll use the root mean squared error as a performance metric to compare the obs
 rmse(test$count, y_pred)
 ```
 
-So our prediction error from this model is approximately `r round(rmse(test$count, y_pred))` bikes per day. 
+So our prediction error from this model is approximately `r round(rmse(test$count, y_pred))` bikes per day. Note that your results may vary from this due to differences in random selection and model building. 
 
 Now, we'll see if we can improve on this using a random forest model. Random forests (RFs) were first introduced by Leo Breiman to tackle very complex, noisy radar data. They work by building a series of decision trees that use the features to break the dataset down into small ranges of the outcome. For example, a decision might be that any relative humidity above 80% will have much lower values of bike rentals, or that summer months will have some of the highest counts. Each tree is based on a series of these decisions, which makes it possible to model more complex relationships, for example with these data, a tree might predict low counts at temperatures below 5 degrees, then higher counts between 5 and 20 degrees, and then low counts again. 
 
-RF models build several hundred of these trees based on different subsets of the data, and diifferent subsets of the available features. This may seem counter-intuitive (why would you use less data to build a model?), but this builds an ensemble of trees that is extremely robust to variations in the data that are used. Note that one additional advantage from this is that the RF model can provide a range of predicted outcomes (one per tree), but in practice these are usually averaged to a single value. We'll fit this here using the **RandomForest** package. Note that this uses the same formual (`f1`) as the linear model"
-
+RF models build several hundred of these trees based on different subsets of the data, and diifferent subsets of the available features. This may seem counter-intuitive (why would you use less data to build a model?), and each individual tree is considered to be a weak model. But the ensemble of trees that are built is extremely robust to variations in the data that are used. Note that one additional advantage from this is that the RF model can provide a range of predicted outcomes (one per tree), but in practice these are usually averaged to a single value. We'll fit this here using the **RandomForest** package. Note that this uses the same formual (`f1`) as the linear model.
 
 ```{r}
 ### Random forest
@@ -235,84 +237,118 @@ y_pred = predict(fit_rf, newdata = test)
 rmse(test$count, y_pred)
 ```
 
-List of model:
-https://topepo.github.io/caret/available-models.html
+Although our predictive error is still high, it has dropped substantially from the linear model. 
+
+## Tuning hyperparameters
+
+Most ML algorithms have a set of hyperparameters that control the way in which the algorithm learns. For example, many algorithms use a series of iterations to update their weights, so one hyperparameter might control the number of iterations, and another might control the amount that the weights can be updated in any step. Selecting the optimal value of these, or tuning them, is often an important step in model building and may markedly improve the model skill. 
+
+The set of hyperparameters is specific to each model. A random forest has several, but the most important are generally considered to be a) the number of features used in the decision trees and b) the number of trees that are made. In R, you find the default settings for these by finding the help page for the `randomForest` function (`?randomForest`) and looking for the arguments `mtry` and `ntrees` respectively. Like most defaults, these are chosen to work reasonably well in most situations, but you can easily change them to see if it improves your model. Here, we'll re-run the random forest with fewer trees (100) and using 4 features in each decision tree split:
 
 ```{r}
-
-## Setting hyperparamter
-fit_rf = randomForest(f1, data = train, mtry = 3, ntree = 1000)
+fit_rf = randomForest(f1, data = train, mtry = 4, ntree = 100)
 fit_rf
 ## Test predictive skill
 y_pred = predict(fit_rf, newdata = test)
-plot(test$count, y_pred)
 rmse(test$count, y_pred)
 ```
 
+In this case, we get a small improvement in the predictive skill compared to the default settings (and this is often the case with random forests - other algorithms may show bigger changes). 
+
+Choosing the best value for the hyperparameters can be a tedious exercise, and often a substantial part of any machine learning project, as testing every possible combination of parameters can become very time consuming. To help with this, most software allows automated tuning of the parameters. Here, the training data are split again into two subsets (one still called training and one called validation). A series of models are built using the new training set with different values for the hyperparameters, and then predicted for the validation set. The hyperparameter values that give the best performance (lowest RMSE in this example) are then considered to be optimal. The **caret** package provides a function (`train()`) that will do all this for you. You need to provide the following:
+
+- A description of the model (this is the formula we created earlier)
+- The dataset to be used (the training data we created earlier)
+- The algorithm to be used (`rf` will build a random forest. The full set of algorithms can be found here https://topepo.github.io/caret/available-models.html)
+- A `trainControl` object that describes how the data will be split up for training and validation
+- A grid of hyperparameters that we want to test for (there are defaults for most algorithms)
+
+Let's start by defining the last two of these. First the hyperparameter grid. We'll try values of `mtry` from 1 to 12:
+
 ```{r}
-
-## Cross-validation
-## K-fold
-fit_control = trainControl(method = "cv", number = 5)
-fit_lm_cv = train(f1, data = train, 
-                 method = "lm", 
-                 trControl = fit_control)
-fit_lm_cv
-fit_lm_cv$resample
-
+rf_grid <- expand.grid( mtry = seq(1, 12))
 ```
 
-```{r}
+Next, we'll define how to split the data for training and validation. Previously, we used a holdout method to get a training and testing set. Here, we'll use a k-fold cross-validation. In this method the data are split $k$ times into a training and validation set and a model is built for each split. The size of each validation set will be $1/k$, so for a 5-fold cross-validation, each validation set is 20% of the data (the argument `number` sets this). The advantage of this method is that we test each combination of hyperparameters $k$ times, which can provide more stable estimate of which is the best. Note that there are other methods that can be used (e.g. repeated cross-validation, bootstrapping) but are more time-consuming; $k$-fold is often preferred as it is a good balance of speed and robustness.
 
+```{r}
+fit_control = trainControl(method = "cv", number = 5)
+```
+
+Now we have this, we can set up and run the tuning process. Note that we specify `method` to select the algorithm used. This will take a few seconds to run - it's creating 5 repeats of 12 hyperparameter values, so 60 total random forests:
+
+```{r}
 fit_rf_cv = train(f1, data = train, 
                   method = "rf", 
-                  trControl = fit_control)
-fit_rf_cv
-fit_rf_cv$resample
+                  trControl = fit_control, 
+                  tuneGrid = rf_grid)
 ```
 
+You can see the results for each value of the hyperparameters (and plot the RMSE)
+
 ```{r}
+fit_rf_cv
+plot(fit_rf_cv)
+```
+You can also see the best model:
 
-y_pred = predict(fit_lm_cv, newdata = test)
-plot(test$count, y_pred)
-rmse(test$count, y_pred)
+```{r}
+fit_rf_cv$finalModel
+```
 
+Now's let's test the predictive skill of the selected model:
+
+```{r}
 y_pred = predict(fit_rf_cv, newdata = test)
-plot(test$count, y_pred)
 rmse(test$count, y_pred)
 ```
 
 ## Exploring the model
 
+Simple regression models such as the one we built above are generally easy to interpret. For example in our model, we found a coefficient of `r round(coef(fit_lm)['temp'])` for daily temperature. Which we can interpret as the number of bikes rented increases by 154 for each increase in temperature of 1 degree. Interpretation of ML models is much less straightforward, but there are some simple things we can calculate. 
+
 ### Variable importance
 
-Next we'll plot the permutation-based variable importance for this model. As a reminder, variable importance is a measure of how much worse a model becomes when we scramble the values of one of the features. The model is used to predict the outcome for some test data (here the out-of-bag samples) twice: once with the original values of the feature and once with randomly shuffled values. If there is a large difference in the skill of the model, this feature is important in controlling the outcome. We'll use the `vip()` function from the **vip** to show and then plot the variable importance scores. As there are three possible models from the resampling, we'll just plot the first. The model object is buried quite deep in the resampling output in `rr_rf$learners[[1]]$model$learner$model`:
+First, we'll look at the permutation-based variable importance for this model. Variable importance is a measure of how much worse a model becomes when we randomly shuffle the values of one of the features. The model is used to predict the outcome for some test data twice: once with the original values of the feature and once with randomly shuffled values. If there is a large difference in the skill of the model, this feature is important in controlling the outcome. 
+
+We'll use the `vip()` function from the **vip** to show and then plot the variable importance scores from the best model we obtained in the last step. 
 
 ```{r}
-
 library(vip)
 vip(fit_rf_cv$finalModel)
 ```
 
 ### Partial dependency plots
 
-We can look at the form of the relationship between the occurrence of the pine and this feature (and any other one) using a partial dependency plot. This shows changes in the outcome across the range of some feature (with all other features held constant). Here, we'll use the `partial()` function from the the **pdp** package to produce the plot. As arguments, this requires the model, the feature that you want the dependency on, the set of data used to produce the model. For a classification model, we can also specify which class to plot for. In this data, the presences (1) are the second class.
+We can look at the form of the relationship between the occurrence of the pine and this feature (and any other one) using a partial dependency (PD) plot. This shows changes in the outcome across the range of some feature (with all other features effectively held constant). 
 
+To get this, we'll use the `partial()` function from the the **pdp** package to obtain the PD values. As arguments, this requires the model, the feature that you want the PD on, the set of data used to produce the model. This produces the PD values for temperature:
 
 ```{r}
 library(pdp)
 partial(fit_rf_cv, "temp", train = bike2)
-# partial(fit_rf_cv, "temp", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
-# partial(fit_rf_cv, "hum", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
-# partial(fit_rf_cv, "windspeed", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
-# partial(fit_rf_cv, c("temp", "hum"), train = bike2, plot = TRUE, plot.engine = 'ggplot2')
-# partial(fit_rf_cv, c("temp", "weathersit"), train = bike2, plot = TRUE, plot.engine = 'ggplot2')
 ```
 
+More typically, we plot this to see the changing response. This illustrates the non-linearity in response. Very few bikes are predicted to be rented below about 2 degC. Rentals then increase in a relative linear fashion to a maximum at about 18 degC, then remain high. Beyond about 25 degC, the rentals start to decline again. 
 
+```{r}
+partial(fit_rf_cv, "temp", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+```
 
+Try plotting these for other variables (e.g. humidity or wind speed). Partial dependency plots can also be made for two variables at the same time, so to see the combined effect of temperature and windspeed:
+
+```{r}
+partial(fit_rf_cv, c("temp", "windspeed"), train = bike2, plot = TRUE)
+```
+
+## Final thoughts
+
+We've been through most of the main steps of a machine learning exercise, including processing, training and testing, and exploring the model. There's quite a lot more that can be done in these steps, but this basic framework works for most projects. This exercise has focused on working with the algorithm - selecting one, tuning it, etc. A very important part of the work is also in selecting the correct variables. 
+
+The models we built all have fairly high error, largely because there is a long-term increasing trend in rentals across the two years. If you have time, try rebuilding and testing a model that includes a feature to capture this (e.g. `yr` or `days_since_2011`), and you'll see a substantial decrease in the RMSE. A thing to note though, is that while this might help in reducing error, it is difficult to see how it could be used in practice. And this illustrates some of the challenge - selecting meaningful features that result in a robust predictive model.  
 
 ## Appendix 1: Bike rental dataset
+
 Bike rental dataset from https://christophm.github.io/interpretable-ml-book/bike-data.html:
 
 - `season`: The season, either spring, summer, fall or winter.
