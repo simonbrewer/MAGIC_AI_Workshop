@@ -4,8 +4,9 @@ author: "Simon Brewer"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
-    df_print: paged
-  word_document: default
+    toc: true
+    toc_float: true
+    fig_caption: true
 ---
 
 ```{r setup, include=FALSE}
@@ -17,9 +18,17 @@ set.seed(1234)
 
 In this lab, we will introduce the basics of machine learning in R. We'll cover some data exploration, designing a machine learning workflow (including a cross-validation strategy and performance metric) and look at how to try different algorithms. We'll also look briefly at making predictions with our model and exploring the results of the model. 
 
-The data we will use contains daily counts of rented bicycles from the bicycle rental company Capital-Bikeshare in Washington D.C., along with weather and seasonal information. Our goal is to build a model to predict the count of bikes rented on any given day. Before starting the lab, you will need to set up a new folder for your working directory. Download the file *bike.csv* from github and move it to this folder. Now start R or Rstudio and set your working directory to this folder (if you're not sure how to do this, please ask). 
+Before starting, we'll define some vocabulary for the process of ML model building:
 
-Before we do anything else, we'll need to load a few add-ons to help. R has a large number of packages for individual machine learning algorithms, but also has a couple of meta-packages that are designed to manage a machine learning workflow. These meta-packages take care of setting up training and testing data, as well as evaluating the models. The package we will use is called **caret**, which is one of the oldest and best established. You will need to install this, as well as a couple of other useful packages. If these are already installed on your computer (you can check in the 'Packages' tab in RStudio), then you can skip this step. 
+- Outcome or target: the variable that we are interested in predicting. The equivalent to covariates in a regression model
+- Features: the variables we will use to predict the outcome. Equivalent to covariates in regression models
+- Training: the process of estimating model weights to best map the features to the outcome
+- Loss function: a measure of how well the predicted outcome ($\hat{y}$) maps to the observed outcome ($y$)
+- Performance metric: a measure of how well the model can predict for an *independent* dataset
+
+The data we will use contains daily counts of rented bicycles from the bicycle rental company Capital-Bikeshare in Washington D.C., along with weather and seasonal information. Our goal is to build a model to predict the count of bikes rented on any given day (the count is the outcome). Before starting the lab, you will need to set up a new folder for your working directory. Download the file *bike.csv* from github and move it to this folder. Now start R or Rstudio and set your working directory to this folder (if you're not sure how to do this, please ask). 
+
+We'll need to load a few add-ons to help. R has a large number of packages for individual machine learning algorithms, but also has a couple of meta-packages that are designed to manage a machine learning workflow. These meta-packages take care of setting up training and testing data, as well as evaluating the models. The package we will use is called **caret**, which is one of the oldest and best established. You will need to install this, as well as a couple of other useful packages. If these are already installed on your computer (you can check in the 'Packages' tab in RStudio), then you can skip this step. 
 
 ```{r eval=FALSE}
 install.packages(c("caret", "tidyverse", "pdp", "vip", "patchwork", "skimr"))
@@ -53,7 +62,7 @@ And get some basic summary statistics using the **skimr** package:
 skim(bike)
 ```
 
-We'll now make some plots to take a look at how the variables relate to the count of rental bikes. First, let's plot the time series of daily rentals. This shows a couple of things: a clear seasonal cycle and a long-term trend across the two years:
+We'll now make some plots to take a look at how the features relate to the count of rental bikes. First, let's plot the time series of daily rentals. This shows a couple of things: a clear seasonal cycle and a long-term trend across the two years:
 
 ```{r}
 ggplot(bike, aes(x = days_since_2011, y = count)) +
@@ -83,6 +92,7 @@ ggplot(bike, aes(x = weekday, y = count)) +
   geom_boxplot() +
   theme_bw()
 ```
+
 - Holidays and working days (this uses **patchwork** to combine figures):
 
 ```{r}
@@ -96,7 +106,7 @@ p1 + p2
 ```
 
 
-Again we can see the clear seasonal cycle, as well as a slightly higher rate on non-holdiays. There's little to no variation across week days however. We can also use some scatter plots to show the relationship of rentals to environmental variables:
+Again we can see the clear seasonal cycle, as well as a slightly higher rate on non-holdiays. There's little to no variation across week days however. We can also use some scatter plots to show the relationship of rentals to environmental features:
 
 
 ```{r}
@@ -120,7 +130,6 @@ ggplot(bike, aes(x = weathersit, y = count)) +
   theme_bw()
 ```
 
-
 ## Machine learning
 
 We'll now build a machine learning model with these data. We'll model the rental numbers using the environmental data, months and holiday/non-holiday variables. 
@@ -132,48 +141,104 @@ The general steps in constructing any ML model are:
 - Train (and optionally tune) the model
 - Estimate the predictive skill through cross-validation
 
-We'll first walk through doing this by hand, then switch to using **caret** to help automate some of these steps
+We'll first walk through doing this by hand, then switch to using **caret** to help automate some of these steps. We'll start by loading the libraries we need:
 
 ```{r}
-library(tidyverse)
-library(patchwork)
-library(skimr)
 library(caret)
 library(ModelMetrics)
 library(randomForest)
+```
 
-## Preprocessing
+### Preprocessing
+
+Prior to building a model, we will want to clean the data to help optimize the training process and the predictive skill of the model. Some things to check for are:
+
+- Outliers in the outcome variable
+- Missing values
+- High correlations between features
+
+This dataset has already been cleaned so there is relatively little to do in processing it before building models. However, the plots above showed an observation with a relative humidity value of 0, which is likely an error. We'll use the `filter()` function to select only observations with `hum > 0`:
+
+```{r}
 bike2 = bike %>%
   filter(hum > 0)
+```
 
+### Cross-validation strategy
+
+As the majority of ML algorithms have no built in diagnostics, similar to those found in traditional statistical models, we need a different approach to assess our models. Cross-validation refers to the process of dividing the data into two subsets:
+
+- The training set is used to build or train the model. Training selects models weights that minimize the loss function (and therefore maximize the fit of the model to the training data). 
+- The test set is used to assess the model. Once the model weights have been established, the trained model is used to predict the outcome for this set. The difference between predicted and observed value is assessed using the performance metric. 
+
+There are several different ways to create the training and test set. Here, we'll use a simple hold-out method. We use `createDataPartition` to select a proportion of the original data to go into the training set (controlled by the argument `p=0.8`). This returns an index with the row number for each observation selected for training, which can then be used to create a training (`train`) and test (`test`) dataset.
+
+```{r}
 ## Cross-validation strategy
-train_id = createDataPartition(bike$count, p = 0.8)
+train_id = createDataPartition(bike2$count, p = 0.8)
 
 train = bike2[train_id[[1]], ] 
 test = bike2[-train_id[[1]], ] 
+```
 
+Check the sizes (the test should be roughly 1/4 the size of the training set):
+
+```{r}
 nrow(train)
 nrow(test)
+```
 
-## Train model
-### Define the model formula
-f1 <- count ~ temp + hum + windspeed + mnth + holiday + days_since_2011
+### Training the model
 
-### Linear model
+Now we can go ahead and train a model. We'll start by using a simple linear regression model. These are considered to be included in machine learning algorithms (much to the annoyance of most statisticians). While these tend not to perform as well as more complex algorithms (tree methods, neural networks, etc), they are useful in providing a baseline model that complex models should improve on. Wee'll build it here using R's `lm()` function. Note that this takes a formula argument that describes the outcome and the features, separated by a tilde (`~`). As we'll use this through out this exercise, we'll create it and store for reuse:
+
+```{r}
+f1 <- count ~ temp + hum + windspeed + mnth + holiday + weathersit
+```
+
+Now fit the model:
+
+```{r}
 fit_lm = lm(f1, data = train)
 summary(fit_lm)
-## Test predictive skill
-y_pred = predict(fit_lm, newdata = test)
-plot(test$count, y_pred)
-rmse(test$count, y_pred)
+```
 
+In a statistical model, we'd spend some time looking at the coefficients, standard errors and $p$-values. In a ML model, we more interested in the predictive skill of the model, so we'll go on to check this now. First, we use the `predict()` function to estimate the bike rental count for each observation in the test set:
+
+```{r}
+y_pred = predict(fit_lm, newdata = test)
+```
+
+We'll use the root mean squared error as a performance metric to compare the observed and predicted bike counts. As the name might suggest, this is the average of the squared difference between obs and pred values.
+
+```{r}
+rmse(test$count, y_pred)
+```
+
+So our prediction error from this model is approximately `r round(rmse(test$count, y_pred))` bikes per day. 
+
+Now, we'll see if we can improve on this using a random forest model. Random forests (RFs) were first introduced by Leo Breiman to tackle very complex, noisy radar data. They work by building a series of decision trees that use the features to break the dataset down into small ranges of the outcome. For example, a decision might be that any relative humidity above 80% will have much lower values of bike rentals, or that summer months will have some of the highest counts. Each tree is based on a series of these decisions, which makes it possible to model more complex relationships, for example with these data, a tree might predict low counts at temperatures below 5 degrees, then higher counts between 5 and 20 degrees, and then low counts again. 
+
+RF models build several hundred of these trees based on different subsets of the data, and diifferent subsets of the available features. This may seem counter-intuitive (why would you use less data to build a model?), but this builds an ensemble of trees that is extremely robust to variations in the data that are used. Note that one additional advantage from this is that the RF model can provide a range of predicted outcomes (one per tree), but in practice these are usually averaged to a single value. We'll fit this here using the **RandomForest** package. Note that this uses the same formual (`f1`) as the linear model"
+
+
+```{r}
 ### Random forest
 fit_rf = randomForest(f1, data = train)
 fit_rf
-## Test predictive skill
+```
+
+Now we can go through the same steps of predicting the outcome and calculating the RMSE:
+
+```{r}
 y_pred = predict(fit_rf, newdata = test)
-plot(test$count, y_pred)
 rmse(test$count, y_pred)
+```
+
+List of model:
+https://topepo.github.io/caret/available-models.html
+
+```{r}
 
 ## Setting hyperparamter
 fit_rf = randomForest(f1, data = train, mtry = 3, ntree = 1000)
@@ -182,6 +247,9 @@ fit_rf
 y_pred = predict(fit_rf, newdata = test)
 plot(test$count, y_pred)
 rmse(test$count, y_pred)
+```
+
+```{r}
 
 ## Cross-validation
 ## K-fold
@@ -192,12 +260,18 @@ fit_lm_cv = train(f1, data = train,
 fit_lm_cv
 fit_lm_cv$resample
 
+```
+
+```{r}
 
 fit_rf_cv = train(f1, data = train, 
                   method = "rf", 
                   trControl = fit_control)
 fit_rf_cv
 fit_rf_cv$resample
+```
+
+```{r}
 
 y_pred = predict(fit_lm_cv, newdata = test)
 plot(test$count, y_pred)
@@ -206,22 +280,35 @@ rmse(test$count, y_pred)
 y_pred = predict(fit_rf_cv, newdata = test)
 plot(test$count, y_pred)
 rmse(test$count, y_pred)
+```
+
+## Exploring the model
+
+### Variable importance
+
+Next we'll plot the permutation-based variable importance for this model. As a reminder, variable importance is a measure of how much worse a model becomes when we scramble the values of one of the features. The model is used to predict the outcome for some test data (here the out-of-bag samples) twice: once with the original values of the feature and once with randomly shuffled values. If there is a large difference in the skill of the model, this feature is important in controlling the outcome. We'll use the `vip()` function from the **vip** to show and then plot the variable importance scores. As there are three possible models from the resampling, we'll just plot the first. The model object is buried quite deep in the resampling output in `rr_rf$learners[[1]]$model$learner$model`:
+
+```{r}
 
 library(vip)
 vip(fit_rf_cv$finalModel)
-
-library(pdp)
-partial(fit_rf_cv, "temp", train = bike2)
-partial(fit_rf_cv, "temp", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
-partial(fit_rf_cv, "hum", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
-partial(fit_rf_cv, "windspeed", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
-partial(fit_rf_cv, c("temp", "hum"), train = bike2, plot = TRUE, plot.engine = 'ggplot2')
 ```
+
+### Partial dependency plots
+
+We can look at the form of the relationship between the occurrence of the pine and this feature (and any other one) using a partial dependency plot. This shows changes in the outcome across the range of some feature (with all other features held constant). Here, we'll use the `partial()` function from the the **pdp** package to produce the plot. As arguments, this requires the model, the feature that you want the dependency on, the set of data used to produce the model. For a classification model, we can also specify which class to plot for. In this data, the presences (1) are the second class.
 
 
 ```{r}
-library(caret)
+library(pdp)
+partial(fit_rf_cv, "temp", train = bike2)
+# partial(fit_rf_cv, "temp", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+# partial(fit_rf_cv, "hum", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+# partial(fit_rf_cv, "windspeed", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+# partial(fit_rf_cv, c("temp", "hum"), train = bike2, plot = TRUE, plot.engine = 'ggplot2')
+# partial(fit_rf_cv, c("temp", "weathersit"), train = bike2, plot = TRUE, plot.engine = 'ggplot2')
 ```
+
 
 
 
