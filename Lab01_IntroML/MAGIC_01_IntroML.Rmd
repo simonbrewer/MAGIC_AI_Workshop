@@ -1,4 +1,3 @@
-
 ---
 title: "MAGIC AI Workshop 01 Introduction to machine learning"
 author: "Simon Brewer"
@@ -146,7 +145,7 @@ The general steps in constructing any ML model are:
 
 We'll first walk through doing this by hand, then switch to using **caret** to help automate some of these steps. We'll start by loading the libraries we need:
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(caret)
 library(ModelMetrics)
 library(randomForest)
@@ -326,7 +325,7 @@ vip(fit_rf_cv$finalModel)
 
 ### Partial dependency plots
 
-We can look at the form of the relationship between the occurrence of the pine and this feature (and any other one) using a partial dependency (PD) plot. This shows changes in the outcome across the range of some feature (with all other features effectively held constant). 
+The variable importance plot shows which of the features are the most useful in predicting bike rentals, but not how these are related. We can look at the form of the relationship between the occurrence of the pine and this feature (and any other one) using a partial dependency (PD) plot. This shows changes in the outcome across the range of some feature (with all other features effectively held constant). 
 
 To get this, we'll use the `partial()` function from the the **pdp** package to obtain the PD values. As arguments, this requires the model, the feature that you want the PD on, the set of data used to produce the model. This produces the PD values for temperature:
 
@@ -341,7 +340,7 @@ More typically, we plot this to see the changing response. This illustrates the 
 partial(fit_rf_cv, "temp", train = bike2, plot = TRUE, plot.engine = 'ggplot2')
 ```
 
-Try plotting these for other variables (e.g. humidity or wind speed). Partial dependency plots can also be made for two variables at the same time, so to see the combined effect of temperature and windspeed:
+Try plotting these for other variables (e.g. humidity or wind speed). Partial dependency plots can also be made for two variables at the same time, so to see the combined effect of temperature and windspeed. Note how the response to temperature is much flatter at higher wind speeds.
 
 ```{r}
 partial(fit_rf_cv, c("temp", "windspeed"), train = bike2, plot = TRUE)
