@@ -296,7 +296,7 @@ You can also see the best model:
 fit_rf_cv$finalModel
 ```
 
-Now's let's test the predictive skill of the selected model:
+Now's let's test the predictive skill of the selected model (the RMSE printed above is for the validation step):
 
 ```{r}
 y_pred = predict(fit_rf_cv, newdata = test)
