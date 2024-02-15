@@ -305,7 +305,13 @@ rmse(test$count, y_pred)
 
 ## Exploring the model
 
-Simple regression models such as the one we built above are generally easy to interpret. For example in our model, we found a coefficient of `r round(coef(fit_lm)['temp'])` for daily temperature. Which we can interpret as the number of bikes rented increases by 154 for each increase in temperature of 1 degree. Interpretation of ML models is much less straightforward, but there are some simple things we can calculate. 
+Simple regression models such as the one we built above are generally easy to interpret. For example in our model, we found a coefficient of `r round(coef(fit_lm)['temp'])` for daily temperature. Which we can interpret as the number of bikes rented increases by 154 for each increase in temperature of 1 degree. Interpretation of ML models is much less straightforward for several reasons:
+
+- They do not have a basis to for statistical inference (i.e. you can't get $p$-values)
+- They capture non-linearities in the relationship between features and labels
+- Often they include complex interactions between features
+
+There are several tools that have been developed to help explore these model. We'll look at a couple of those here.
 
 ### Variable importance
 

@@ -1481,7 +1481,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">MAGIC AI Workshop 01 Introduction to
 machine learning</h1>
 <h4 class="author">Simon Brewer</h4>
-<h4 class="date">14 February, 2024</h4>
+<h4 class="date">15 February, 2024</h4>
 
 </div>
 
@@ -2198,7 +2198,8 @@ You can also see the best model:</p>
 ## 
 ##           Mean of squared residuals: 1406755
 ##                     % Var explained: 62.72</code></pre>
-<p>Now’s let’s test the predictive skill of the selected model:</p>
+<p>Now’s let’s test the predictive skill of the selected model (the RMSE
+printed above is for the validation step):</p>
 <pre class="r"><code>y_pred = predict(fit_rf_cv, newdata = test)
 rmse(test$count, y_pred)</code></pre>
 <pre><code>## [1] 1226.116</code></pre>
@@ -2209,8 +2210,17 @@ rmse(test$count, y_pred)</code></pre>
 easy to interpret. For example in our model, we found a coefficient of
 154 for daily temperature. Which we can interpret as the number of bikes
 rented increases by 154 for each increase in temperature of 1 degree.
-Interpretation of ML models is much less straightforward, but there are
-some simple things we can calculate.</p>
+Interpretation of ML models is much less straightforward for several
+reasons:</p>
+<ul>
+<li>They do not have a basis to for statistical inference (i.e. you
+can’t get <span class="math inline">\(p\)</span>-values)</li>
+<li>They capture non-linearities in the relationship between features
+and labels</li>
+<li>Often they include complex interactions between features</li>
+</ul>
+<p>There are several tools that have been developed to help explore
+these model. We’ll look at a couple of those here.</p>
 <div id="variable-importance" class="section level3">
 <h3>Variable importance</h3>
 <p>First, we’ll look at the permutation-based variable importance for
