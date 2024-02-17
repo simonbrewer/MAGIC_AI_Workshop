@@ -21,7 +21,8 @@ In this lab, we will introduce tools for natural language processing (NLP), from
 You'll need several packages for the lab including:
 
 - `tidytext`: a library for cleaning and processing text data
-- ?? SOME OTHER ONES
+- `SnowballC`
+- `textstem`
 
 ```{r eval=FALSE}
 install.packages(c("tidytext"))
@@ -32,6 +33,7 @@ Now load the first few packages:
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(tidytext)
+library(textstem)
 ```
 
 ## Data
@@ -130,37 +132,49 @@ head(tidy_dat)
 
 ### Word matching
 
-The last thing we'll need to do is match words with similar meanings. There's a couple of approaches to this: stemming and lemmatization. Stemming strips words back to the core stem using `wordStem()` from the SmowballC library. For example, here are 5 different words related to programming. The stemmer converts them all to `program`:
+The last thing we'll need to do is match words with similar meanings. There's a couple of approaches to this: stemming and lemmatization. Stemming strips words back to the core stem using `stem_words()` from the **textstem** library. For example, here are 5 different words related to programming. The stemmer converts them all to `program`:
 
 ```{r}
-library(SnowballC)
 words <- c("program","programming","programer","programs","programmed")
-wordStem(words)
+stem_words(words)
 ```
 
 One disadvantage to this is that the stems may no longer reflect actual words. For example, the stem to climate is `climat`:
 
 ```{r}
-wordStem("climate")
+stem_words("climate")
 ```
 
 The second issue is that stemming does not account for context - that words with different meanings may be spelled the same, and can only be distinguished in the context of the sentence. 
 
-Lemmatization attempts to avoid these issues by converting words to a standard form, and accounting for the meaning of the surrounding words. Here we'll use the **spacyr** package to perform lemmatization. This runs a python package in the packground and needs to be set up the first time you use it with `spacy_install()` 
+Lemmatization attempts to avoid these issues by converting words to a standard form, and accounting for the meaning of the surrounding words. Here we'll use the **spacyr** package to perform lemmatization. Use this to compare the conversion of `saw` in these two phrases:
 
 ```{r message=FALSE, warning=FALSE}
 library(spacyr)
-## spacy_install() ## Run first time after installation
-spacy_initialize(entity = FALSE)
-```
-Now compare the conversion of `saw` in these two phrases:
-
-```{r message=FALSE, warning=FALSE}
 spacy_parse("Owen saw a rabbit")
 ```
 
 ```{r message=FALSE, warning=FALSE}
 spacy_parse("Owen cut a plank with a saw")
+```
+
+### Putting it all together
+
+Step 1: clean
+
+```{r}
+tidy_dat <- dat %>%
+  mutate(message = str_replace_all(message, "https://t.co/[A-Za-z\\d]+|http://[A-Za-z\\d]+|&amp;|&lt;|&gt;|RT|https", "")) %>% 
+  mutate(message = str_replace_all(message, "@\\w+", "")) %>%
+  unnest_tokens(word, message) %>%
+  filter(!word %in% stop_words$word,
+         str_detect(word, "[a-z]"))
+```
+
+Step 2: lemmatize
+
+```{r}
+tidy_dat$clean_word <- spacy_parse(tidy_dat$word)$lemma
 ```
 
 
