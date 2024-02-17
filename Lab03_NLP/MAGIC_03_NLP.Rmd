@@ -30,6 +30,7 @@ install.packages(c("tidytext"))
 Now load the first few packages:
 
 ```{r message=FALSE, warning=FALSE}
+library(tidyverse)
 library(tidytext)
 ```
 
@@ -48,5 +49,118 @@ The data are held in the file *twitter_sentiment_data.csv*, which you can downlo
 
 ```{r}
 dat <- read.csv("../datafiles/twitter_sentiment_data.csv")
+head(dat)
 ```
+
+Our basic plan here is:
+
+1. Prepare the data for analysis. 
+2. Visualize and explore the data
+3. Create an embedding for the tweets. This represents each tweet as a vector of numbers, and can be used for further analysis
+4. Create a simple machine learning model to predict the sentiment of a tweet
+
+## Text processing
+
+Processing text data into a usable form can be one of the most time consuming parts of the analysis. Basically, we want to remove any characters or words that are irrelevant to any analysis. In addition, we should try to simplify and standardize the language used. For example, a computer will not necessarily recognize that 'see' and 'seen' are related to each other. 
+
+
+### General cleaning
+
+First, we'll remove any retweets from the dataset (indicated by `RT` at the start of the message). While there are some applications where the number of retweets are of interest, we will consider them as duplicates for this exercise. 
+
+```{r}
+dat = dat %>%
+  filter(str_starts(message, "RT", negate = TRUE))
+```
+
+To illustrate the next steps, we'll extract the fourth tweet from the dataset:
+
+```{r}
+tweet = dat[4, ]
+print(tweet$message)
+```
+
+This is a typical tweet and has several issues for text processing:
+
+- There is a URL at the end of the tweet
+- There is at least one username (`@...`)
+- There are several hashtag (`#...`)
+
+We'll use several steps to clean this up. To illustrate these, we'll walk through the individual steps for the first 5 tweets.
+
+- First extract the first 5 tweets:
+
+```{r}
+tidy_dat <- dat %>%
+  slice_head(n = 5) 
+```
+
+- Remove various non-words (URLs, symbols, etc)
+
+```{r}
+tidy_dat <- tidy_dat %>%
+  mutate(message = str_replace_all(message, "https://t.co/[A-Za-z\\d]+|http://[A-Za-z\\d]+|&amp;|&lt;|&gt;|RT|https", "")) 
+head(tidy_dat)
+```
+
+- Remove usernames (starting with `@..`)
+
+```{r}
+tidy_dat <- tidy_dat %>% 
+  mutate(message = str_replace_all(message, "@\\w+", "")) 
+head(tidy_dat)
+```
+
+- Convert the tweets into individual words or tokens. Note that this converts the data from being one line per tweet to one line per work
+
+```{r}
+tidy_dat <- tidy_dat %>%
+  unnest_tokens(word, message)
+head(tidy_dat)
+```
+
+- Finally, remove stopwords. These are a predefined set of commonly occurring words that have little value in analysis (e.g. the, and, ...). 
+
+```{r}
+tidy_dat <- tidy_dat %>%
+  filter(!word %in% stop_words$word,
+         str_detect(word, "[a-z]"))
+head(tidy_dat)
+```
+
+### Word matching
+
+The last thing we'll need to do is match words with similar meanings. There's a couple of approaches to this: stemming and lemmatization. Stemming strips words back to the core stem using `wordStem()` from the SmowballC library. For example, here are 5 different words related to programming. The stemmer converts them all to `program`:
+
+```{r}
+library(SnowballC)
+words <- c("program","programming","programer","programs","programmed")
+wordStem(words)
+```
+
+One disadvantage to this is that the stems may no longer reflect actual words. For example, the stem to climate is `climat`:
+
+```{r}
+wordStem("climate")
+```
+
+The second issue is that stemming does not account for context - that words with different meanings may be spelled the same, and can only be distinguished in the context of the sentence. 
+
+Lemmatization attempts to avoid these issues by converting words to a standard form, and accounting for the meaning of the surrounding words. Here we'll use the **spacyr** package to perform lemmatization. This runs a python package in the packground and needs to be set up the first time you use it with `spacy_install()` 
+
+```{r message=FALSE, warning=FALSE}
+library(spacyr)
+## spacy_install() ## Run first time after installation
+spacy_initialize(entity = FALSE)
+```
+Now compare the conversion of `saw` in these two phrases:
+
+```{r message=FALSE, warning=FALSE}
+spacy_parse("Owen saw a rabbit")
+```
+
+```{r message=FALSE, warning=FALSE}
+spacy_parse("Owen cut a plank with a saw")
+```
+
 
