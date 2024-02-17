@@ -1,0 +1,52 @@
+---
+title: "MAGIC AI Workshop 03 Natural Language Processing"
+author: "Simon Brewer"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(888)
+```
+
+## Introduction
+
+In this lab, we will introduce tools for natural language processing (NLP), from basic data preparation through to some exploration and building a simple machine learning model. We are only scratching the surface of what is possible with NLP methods in this lab. See the tidytext website for further examples. 
+
+You'll need several packages for the lab including:
+
+- `tidytext`: a library for cleaning and processing text data
+- ?? SOME OTHER ONES
+
+```{r eval=FALSE}
+install.packages(c("tidytext"))
+```
+
+Now load the first few packages:
+
+```{r message=FALSE, warning=FALSE}
+library(tidytext)
+```
+
+## Data
+
+We'll use a set of tweets related to climate change from 2015 to 2018, taken from:
+
+https://www.kaggle.com/datasets/edqian/twitter-climate-change-sentiment-dataset
+
+The data are held in the file *twitter_sentiment_data.csv*, which you can download from the github repository. Read these in and take a quick look. There are three columns: a sentiment estimate, the tweet (`message`) and a tweet id. The sentiment estimate was provided by a group of experts and are tagged as follows:
+
+- `2` (News): the tweet links to factual news about climate change
+- `1` (Pro): the tweet supports the belief of man-made climate change
+- `0` (Neutral): the tweet neither supports nor refutes the belief of man-made climate change
+- `-1`(Anti): the tweet does not believe in man-made climate change
+
+```{r}
+dat <- read.csv("../datafiles/twitter_sentiment_data.csv")
+```
+
