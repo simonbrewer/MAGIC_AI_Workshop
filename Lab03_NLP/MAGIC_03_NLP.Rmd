@@ -26,6 +26,7 @@ You'll need several packages for the lab including:
 - `textstem`
 - `word2vec`
 - `uwot`
+- `textdata`
 
 ```{r eval=FALSE}
 install.packages(c("tidytext"))
@@ -223,17 +224,17 @@ wordcloud(tidy_count_neg$clean_word, tidy_count_neg$n, max.words = 100)
 
 ### Sentiment analysis
 
-Next, we'll estimate the sentiment of the tweets. The data already has a column labeled `sentiment`, which is a category describing whether the tweet was for or against climate change (or neutral). Sentiment analysis is a little different from this, as it attempts to score some text based on whether the words are overall positive, neutral or negative, irrespective of the belief in or against climate change. There are several different dictionaries for sentiment analysis, some of which provide more fine grained detail. We'll use here a function from the tidytext library (`get_sentiment`), with the binary Bing dictionary (positive/negative).
+Next, we'll estimate the sentiment of the tweets. The data already has a column labeled `sentiment`, which is a category describing whether the tweet was for or against climate change (or neutral). Sentiment analysis is a little different from this, as it attempts to score some text based on whether the words are overall positive, neutral or negative, irrespective of the belief in or against climate change. There are several different dictionaries for sentiment analysis, some of which provide more fine grained detail. We'll use here a function from the tidytext library (`get_sentiment`), which scores sentiment values between -5 (negative) and 5 (positive) for each word. You may be prompted to download the AFINN library when running this. 
 
 ```{r}
-get_sentiments("bing") %>%
+get_sentiments("afinn") %>%
   head()
 ```
 
 We merge this with the cleaned data by joining on the cleaned word:
 
 ```{r}
-tidy_sentiment <- inner_join(tidy_dat, get_sentiments("bing"), by = c("clean_word" = "word"))
+tidy_sentiment <- inner_join(tidy_dat, get_sentiments("afinn"), by = c("clean_word" = "word"))
 head(tidy_sentiment)
 ```
 
@@ -241,7 +242,7 @@ And we can make a word cloud of the positive terms used in conjunction with clim
 
 ```{r message=FALSE, warning=FALSE}
 tidy_count_pos <- tidy_sentiment %>%
-  filter(sentiment.y == "positive",
+  filter(value > 1,
          !clean_word %in% c("climate", "change", "global", "warm", "trump")) %>%
   count(clean_word) %>%
   arrange(-n)
@@ -302,7 +303,7 @@ vectorized_words = predict(model, tidy_dat$clean_word,
                            type = "embedding")
 ```
 
-The result (`vectorized_docs`) is a numeric array with 300 columns and the same number of rows as the cleaned words. We'll now collapse the values into mean embeddings for each tweet. To do this we have to add (and subsequently remove the tweet id from the cleaned data)
+The result (`vectorized_docs`) is a numeric array with 300 columns and the same number of rows as the cleaned words. We'll now collapse the values into mean embeddings for each tweet. To do this we have to add (and subsequently remove) the tweet id from the cleaned data.
 
 ```{r}
 vectorized_words = as.data.frame(vectorized_words)
@@ -342,5 +343,37 @@ df <- data.frame(x = viz[, 1], y = viz[, 2],
                  stringsAsFactors = FALSE)
 ggplot(df, aes(x = x, y = y, col = cluster)) +
   geom_point() + theme_void()
+```
+
+### Using embeddings in machine learning
+
+As a last step, we'll briefly look at using these embeddings in a machine learning model. We'll build a model to try and predict the sentiment of a tweet (positive or negative) from it's content. We'll use a random forest model with the embeddings as features, and the sentiment value as a label. 
+We'll first need to integrate our embedding data with the sentiment score we generated earlier. First, we'll remake the average embedding values per tweet, but this time we'll keep the tweet id. 
+
+```{r}
+vectorized_docs_ml <- vectorized_words %>% 
+  drop_na() %>%
+  group_by(id) %>% 
+  summarise_all(mean, na.rm = TRUE)
+```
+
+Next, we generate a mean sentiment score for each tweet, and convert it to a bianry (0 = negative, 1 = positive)
+
+```{r}
+tidy_sentiment <- tidy_sentiment %>%
+  group_by(tweetid) %>%
+  summarize(value = mean(value)) %>%
+  mutate(sentiment = ifelse(value > 0, 1, 0))
+```
+
+Then we merge these two datasets together using the tweet id, and remove any columns we do not want to use in the ML model
+
+```{r}
+vectorized_docs_ml = inner_join(vectorized_docs_ml, 
+                                tidy_sentiment, 
+                                by = c("id" = "tweetid"))
+
+vectorized_docs_ml = vectorized_docs_ml %>%
+  select(-id, -value)
 ```
 
