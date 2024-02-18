@@ -59,7 +59,7 @@ The data are held in the file *twitter_sentiment_data.csv*, which you can downlo
 - `-1`(Anti): the tweet does not believe in man-made climate change
 
 ```{r}
-dat <- read.csv("../datafiles/twitter_sentiment_data.csv")
+dat <- read.csv("./datafiles/twitter_sentiment_data.csv")
 head(dat)
 ```
 
