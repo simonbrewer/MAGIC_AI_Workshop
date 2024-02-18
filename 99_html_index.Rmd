@@ -22,16 +22,16 @@ output:
 -	Monday morning
     - General introduction (Simon)
     - Introduction to machine learning (Adit)
-    - [Intro ML exercise][introML]
+    - Intro ML exercise: [R notebook][introML_R]|[Python notebook][introML_P]
     - Open project discussion (all participants)
 - Monday afternoon
     - Introduction to convolutional neural networks (Savanna)
     - Image segmentation (Husile)
-    - [CNN exercise][CNNs]
+    - CNN exercise: [R notebook][CNN_R]|[Python notebook][CNN_P]
     - Project work (groups)
 - Tuesday morning
     - Introduction to Natural Language Processing methods (Simon)
-    - [NLP exercise][NLP]
+    - NLP exercise: [R notebook][NLP_R]|[Python notebook][NLP_P]
     - Project work (groups)
 - Tuesday afternoon
     - General MAGIC project discussion (incl. Patagonia field trip)
@@ -41,14 +41,11 @@ output:
     - Project work (groups)
     - Workshop wrap-up
 
-# Exercises
 
-- [Exercise 01: Intro to machine learning][introML]
-- [Exercise 02: Convolutional Neural Networks][CNNs]
-- [Exercise 03: Natural language processing][NLP]
-
-
-[introML]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_01_IntroML.html
-[CNNs]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_02_CNNS.html
-[NLP]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_03_NLP.html
+[introML_R]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_01_IntroML.html
+[introML_P]:https://github.com/simonbrewer/MAGIC_AI_Workshop/blob/main/MAGIC_01_IntroML.ipynb
+[CNN_R]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_02_CNNS.html
+[CNN_P]: https://github.com/simonbrewer/MAGIC_AI_Workshop/blob/main/MAGIC_02_CNNs.ipynb
+[NLP_R]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_03_NLP.html
+[NLP_P]: https://github.com/simonbrewer/MAGIC_AI_Workshop/blob/main/MAGIC_03_NLP.ipynb
 [gilbert]: https://geology.utah.gov/map-pub/survey-notes/geosights/g-k-gilbert-geologic-view-park/
