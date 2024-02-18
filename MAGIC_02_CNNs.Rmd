@@ -1,5 +1,10 @@
 ---
 title: "MAGIC AI Workshop 02 Convolutional neural networks"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'MAGIC_02_CNNS.html'))})
 author: | 
   | Simon Brewer
   | Geography Department
@@ -93,7 +98,7 @@ library(ggplot2)
 Now set the path to the folder containing the training images you downloaded. If you've copied these to your datafiles folder, this will look something like this:
 
 ```{r eval=TRUE}
-train_image_files_path = "../datafiles/fruits/Training/"
+train_image_files_path = "./datafiles/fruits/Training/"
 ```
 
 If you have any questions about setting this path, please ask. 
@@ -445,7 +450,7 @@ The plot shows a good evolution of both the loss and performance metrics.
 We'll now evaluate this model on the set of test images. Normally, we'd retrain the model using the full training set (including the validation set), but to save time, we'll just proceed with the existing model. In order to do this, we first need to create a new image generator for the test images:
 
 ```{r}
-test_image_files_path <- "../datafiles/fruits/Test/"
+test_image_files_path <- "./datafiles/fruits/Test/"
 
 test_data_gen <- image_data_generator(rescale = 1/255)
 
