@@ -374,6 +374,42 @@ vectorized_docs_ml = inner_join(vectorized_docs_ml,
                                 by = c("id" = "tweetid"))
 
 vectorized_docs_ml = vectorized_docs_ml %>%
-  select(-id, -value)
+  select(-id, -value) %>%
+  mutate(sentiment = as.factor(sentiment))
 ```
+
+Now we'll load the **caret** package. As the dataset is realtively large, we'll use a different, more efficient, package (**ranger**) to build the random forest model
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+library(ranger)
+```
+
+Now form a training and test set (80/20 split):
+
+```{r}
+train_id = createDataPartition(vectorized_docs_ml$sentiment, p = 0.8)
+train = vectorized_docs_ml[train_id[[1]], ] 
+test = vectorized_docs_ml[-train_id[[1]], ] 
+```
+
+Train the model:
+
+```{r}
+fit_rf = ranger(sentiment ~ ., train)
+```
+
+Predict for the test dataset:
+
+```{r}
+y_pred = predict(fit_rf, test)$prediction
+```
+
+And get the performance metrics:
+
+```{r}
+confusionMatrix(test$sentiment, y_pred)
+```
+
+There's a lot of output here, but the key one we'll use is the accuracy, which is roughly 80%. This suggests that, given a tweet, we'd be able to predict it's sentiment fairly well. This could be improved by tuning the model, using the sentiment score rather than the 0/1 indicator and, of course, including more data.
 
