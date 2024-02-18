@@ -41,6 +41,9 @@ output:
     - Project work (groups)
     - Workshop wrap-up
 
+# Data
+
+All files for the exercises can be found [here][gdrive]
 
 [introML_R]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_01_IntroML.html
 [introML_P]:https://github.com/simonbrewer/MAGIC_AI_Workshop/blob/main/MAGIC_01_IntroML.ipynb
@@ -49,3 +52,4 @@ output:
 [NLP_R]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_03_NLP.html
 [NLP_P]: https://github.com/simonbrewer/MAGIC_AI_Workshop/blob/main/MAGIC_03_NLP.ipynb
 [gilbert]: https://geology.utah.gov/map-pub/survey-notes/geosights/g-k-gilbert-geologic-view-park/
+[gdrive]: https://drive.google.com/drive/folders/1lp79wJvtis-SDQ2pbZ4Ecgb4CEEawV-Q?usp=drive_link
