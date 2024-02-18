@@ -1,12 +1,11 @@
 ---
-title: 'AML/ALL Chimerism relapse results'
+title: 'MAGIC AI Workshop (Feb 19-21 2024)'
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author:
-  - David C. Shyr^[Stanford Medicine, dcshyr@stanford.edu]
   - Simon Brewer^[University of Utah, simon.brewer@geog.utah.edu]
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -18,63 +17,37 @@ output:
     toc_float: false
 ---
 
-# Descriptive plots
+# Agenda
 
-- [ALL Bone marrow chimerism plots][plots_all_bmc]
-- [ALL Peripheral blood chimerism plots][plots_all_pbc]
-- [AML Bone marrow chimerism plots][plots_aml_bmc]
-- [AML Peripheral blood chimerism plots][plots_aml_pbc]
+-	Monday morning
+  - General introduction (Simon)
+  - Introduction to machine learning (Adit)
+  - Intro ML exercise 
+  - Open project discussion (all participants)
+- Monday afternoon
+  - Introduction to convolutional neural networks (Savanna)
+  - Image segmentation (Husile)
+  - CNN exercise
+  - Project work (groups)
+- Tuesday morning
+  - Introduction to Natural Language Processing methods (Simon)
+  - NLP exercise
+  - Project work (groups)
+- Tuesday afternoon
+  - General MAGIC project discussion (incl. Patagonia field trip)
+  - Trip to Gilbert Geologic Park
+- Wednesday morning
+  - Possible: Unsupervised methods or discussion on data sources
+  - Project work (groups)
+  - Workshop wrap-up
 
-# Tuning
+# Exercises
 
-- [ALL chimerism RF tuning][rf_all_tuning_mlr3]
-- [AML chimerism RF tuning][rf_aml_tuning_mlr3]
-
-# Cross-validation
-
-- [ALL chimerism RF x-validation][rf_all_tuning_mlr3]
-- [AML chimerism RF x-validation][rf_aml_tuning_mlr3]
-
-# Figures
-
-- [ALL chimerism RF PDP / VIP][rf_all_predict]
-- [AML chimerism RF PDP / VIP][rf_aml_predict]
-
-# Figures (with transplant year)
-
-- [ALL chimerism RF PDP / VIP][rf_all_year_predict]
-- [AML chimerism RF PDP / VIP][rf_aml_year_predict]
-
-# LIME plots
-
-- [ALL chimerism RF LIME][rf_all_lime]
-- [AML chimerism RF LIME][rf_aml_lime]
-
-# VIVID interaction plots
-
-- [ALL chimerism RF VIVID][rf_all_vivid]
-- [AML chimerism RF VIVID][rf_aml_vivid]
-
-[plots_all_bmc]: https://simonbrewer.github.io/aml_all/plots_all_bmc.html
-[plots_all_pbc]: https://simonbrewer.github.io/aml_all/plots_all_pbc.html
-[plots_aml_bmc]: https://simonbrewer.github.io/aml_all/plots_aml_bmc.html
-[plots_aml_pbc]: https://simonbrewer.github.io/aml_all/plots_aml_pbc.html
+- [Exercise 01: Intro to machine learning][introML]
+- [Exercise 02: Convolutional Neural Networks][CNNs]
+- [Exercise 03: Natural language processing][NLP]
 
 
-[rf_all_tuning_mlr3]: https://simonbrewer.github.io/aml_all/rf_all_tuning_mlr3.html
-[rf_aml_tuning_mlr3]: https://simonbrewer.github.io/aml_all/rf_aml_tuning_mlr3.html
-
-[rf_all_xvalid_mlr3]: https://simonbrewer.github.io/aml_all/rf_all_xvalid_mlr3.html
-[rf_aml_xvalid_mlr3]: https://simonbrewer.github.io/aml_all/rf_aml_xvalid_mlr3.html
-
-[rf_all_predict]: https://simonbrewer.github.io/aml_all/rf_all_predict.html
-[rf_aml_predict]: https://simonbrewer.github.io/aml_all/rf_aml_predict.html
-
-[rf_all_year_predict]: https://simonbrewer.github.io/aml_all/rf_all_year_predict.html
-[rf_aml_year_predict]: https://simonbrewer.github.io/aml_all/rf_aml_year_predict.html
-
-[rf_all_lime]: https://simonbrewer.github.io/aml_all/rf_all_lime.html
-[rf_aml_lime]: https://simonbrewer.github.io/aml_all/rf_aml_lime.html
-
-[rf_all_vivid]: https://simonbrewer.github.io/aml_all/rf_all_vivid.html
-[rf_aml_vivid]: https://simonbrewer.github.io/aml_all/rf_aml_vivid.html
+[introML]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_01_IntroML.html
+[CNNs]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_02_CNNS.html
+[NLP]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_03_NLP.html
