@@ -12,7 +12,7 @@ output:
   html_document:
     theme: flatly
     df_print: paged
-    number_sections: true
+    number_sections: false
     toc: false
     toc_float: false
 ---
@@ -20,26 +20,26 @@ output:
 # Agenda
 
 -	Monday morning
-  - General introduction (Simon)
-  - Introduction to machine learning (Adit)
-  - Intro ML exercise 
-  - Open project discussion (all participants)
+    - General introduction (Simon)
+    - Introduction to machine learning (Adit)
+    - [Intro ML exercise][introML]
+    - Open project discussion (all participants)
 - Monday afternoon
-  - Introduction to convolutional neural networks (Savanna)
-  - Image segmentation (Husile)
-  - CNN exercise
-  - Project work (groups)
+    - Introduction to convolutional neural networks (Savanna)
+    - Image segmentation (Husile)
+    - [CNN exercise][CNNs]
+    - Project work (groups)
 - Tuesday morning
-  - Introduction to Natural Language Processing methods (Simon)
-  - NLP exercise
-  - Project work (groups)
+    - Introduction to Natural Language Processing methods (Simon)
+    - [NLP exercise][NLP]
+    - Project work (groups)
 - Tuesday afternoon
-  - General MAGIC project discussion (incl. Patagonia field trip)
-  - Trip to Gilbert Geologic Park
+    - General MAGIC project discussion (incl. Patagonia field trip)
+    - Trip to [Gilbert Geologic Park][gilbert]
 - Wednesday morning
-  - Possible: Unsupervised methods or discussion on data sources
-  - Project work (groups)
-  - Workshop wrap-up
+    - Possible: Unsupervised methods or discussion on data sources
+    - Project work (groups)
+    - Workshop wrap-up
 
 # Exercises
 
@@ -51,3 +51,4 @@ output:
 [introML]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_01_IntroML.html
 [CNNs]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_02_CNNS.html
 [NLP]: https://simonbrewer.github.io/MAGIC_AI_Workshop/MAGIC_03_NLP.html
+[gilbert]: https://geology.utah.gov/map-pub/survey-notes/geosights/g-k-gilbert-geologic-view-park/
