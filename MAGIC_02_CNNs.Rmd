@@ -65,7 +65,7 @@ Once you have unzipped the data, take a look in the *fruits* folder. This is alr
 Note that this is a specific format for image classification. There are other options, for example, if you are working with continuous outcomes.
 
 
-## Installing Keras
+## Tensorflow and Keras
 
 The TensorFlow and Keras libraries were first designed to be used in Python. There has been quite a lot of work recently to allow access in R, mainly using the `reticulate` package which allows exchanges between R and Python. You do still need an version of Python for this to work, but this can be installed directly from R. 
 
