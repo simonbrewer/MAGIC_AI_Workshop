@@ -11,7 +11,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-set.seed(888)
+set.seed(42)
 ```
 
 ## Introduction
@@ -22,7 +22,10 @@ You'll need several packages for the lab including:
 
 - `tidytext`: a library for cleaning and processing text data
 - `SnowballC`
+- `spacyr`
 - `textstem`
+- `word2vec`
+- `uwot`
 
 ```{r eval=FALSE}
 install.packages(c("tidytext"))
@@ -173,8 +176,171 @@ tidy_dat <- dat %>%
 
 Step 2: lemmatize
 
+Note to keep things running quickly in this lab, we'll use **textstem**'s function for lemmatization. This is not quite as robust as the **spacyr** library, but substantially faster. 
+
 ```{r}
-tidy_dat$clean_word <- spacy_parse(tidy_dat$word)$lemma
+tidy_dat$clean_word <- lemmatize_words(tidy_dat$word)
 ```
 
+
+## Exploring the data
+
+We can now use the cleaned text data to do some exploration. We'll start by making some word clouds. These are a very common visualization of text data, where words are randomly placed on a figure and scaled according to their frequency. We'll use the `wordcloud` package to make plots, and create a data frame of the counts of individual words for use in the cloud.
+
+```{r}
+tidy_count <- tidy_dat %>%
+  count(clean_word) %>%
+  arrange(-n)
+head(tidy_count)
+```
+
+First, let's plot all the data. This is, not surprisingly, dominated by the words 'climate' and 'change'
+
+```{r message=FALSE, warning=FALSE}
+library(wordcloud)
+wordcloud(tidy_count$clean_word, tidy_count$n, max.words = 100)
+```
+
+For the next plot, we'll extract only the 'pro' tweets, and skip plotting climate and change by setting them as stopwords 
+
+```{r message=FALSE, warning=FALSE}
+tidy_count_pos <- tidy_dat %>%
+  filter(sentiment == 1,
+         !clean_word %in% c("climate", "change", "global", "warm")) %>%
+  count(clean_word) %>%
+  arrange(-n)
+wordcloud(tidy_count_pos$clean_word, tidy_count_pos$n, max.words = 100)
+```
+
+```{r message=FALSE, warning=FALSE}
+tidy_count_neg <- tidy_dat %>%
+  filter(sentiment == -1,
+         !clean_word %in% c("climate", "change", "global", "warm")) %>%
+  count(clean_word) %>%
+  arrange(-n)
+wordcloud(tidy_count_neg$clean_word, tidy_count_neg$n, max.words = 100)
+```
+
+### Sentiment analysis
+
+Next, we'll estimate the sentiment of the tweets. The data already has a column labeled `sentiment`, which is a category describing whether the tweet was for or against climate change (or neutral). Sentiment analysis is a little different from this, as it attempts to score some text based on whether the words are overall positive, neutral or negative, irrespective of the belief in or against climate change. There are several different dictionaries for sentiment analysis, some of which provide more fine grained detail. We'll use here a function from the tidytext library (`get_sentiment`), with the binary Bing dictionary (positive/negative).
+
+```{r}
+get_sentiments("bing") %>%
+  head()
+```
+
+We merge this with the cleaned data by joining on the cleaned word:
+
+```{r}
+tidy_sentiment <- inner_join(tidy_dat, get_sentiments("bing"), by = c("clean_word" = "word"))
+head(tidy_sentiment)
+```
+
+And we can make a word cloud of the positive terms used in conjunction with climate change (I am well aware of the irony of trump being considered positive here, so I'm going to remove it):
+
+```{r message=FALSE, warning=FALSE}
+tidy_count_pos <- tidy_sentiment %>%
+  filter(sentiment.y == "positive",
+         !clean_word %in% c("climate", "change", "global", "warm", "trump")) %>%
+  count(clean_word) %>%
+  arrange(-n)
+wordcloud(tidy_count_pos$clean_word, tidy_count_pos$n, max.words = 100)
+```
+
+## Embedding text data
+
+To go further in the analysis of text data, we need to use a text embedding. This converts the text to a numeric representation in a high dimensional space. The simplest form of this is one-hot encoding, which creates a binary matrix with one column per word, and one row per tweet. If the word occurs in that tweet, then it's labeled with a `1`, and a `0` if not. One hot encoding works well with a small number of words, but scales poorly with richer text. 
+
+Embeddings are more complex representations of text, usually created by analyzing which words are likely to occur in similar contexts. It has a lot of similarities to principal component analysis for numeric data, in which complex data can be represented by a small number of *components* that capture correlations between the variables. For text, these means that the embedding for 'dog' and 'cat' will be similar, but 'dog' and 'car' will be dissimilar. This can then be used to explore the similarity between pieces of text, or (as we'll see below) to use text in machine learning models. These embeddings are a key part of large language models (e.g. ChatGPT), where they are used to relate prompts or questions to the appropriate text that makes up a response. 
+
+While it's possible to create your own embedding (which is useful for specific projects), this can be quite time consuming, and can require a substantial amount of text. In the example we'll use below, we'll use an embedding that was created using a model called Word2Vec and trained using Google news articles. You can download the file that contained the embedding here:
+
+https://www.kaggle.com/datasets/leadbest/googlenewsvectorsnegative300
+
+A good selection of alternative, pre-trained embeddings can be found at Hugging Face:
+
+https://huggingface.co/models?other=text-embedding
+
+Load the `word2vec` package to find the embeddings for different pieces of text, and we'll need to load the embeddings file:
+
+```{r}
+library(word2vec)
+model <- read.word2vec(file = "./wgts/GoogleNews-vectors-negative300.bin", normalize = TRUE)
+```
+
+As an example, here is the embedding for the word 'cat' (I've just printed the first 50 values):
+
+```{r}
+predict(model, "cat", type = "embedding")[1, 1:50]
+```
+
+It's pretty meaningless to us mortals, but this is a representation of the word 'cat' that a computer can work with. To follow the example given above, we can extract these for 'cat', 'dog' and 'car', and explore the correlations with these
+
+```{r}
+cat_wv = predict(model, "cat", type = "embedding")[1, ]
+car_wv = predict(model, "car", type = "embedding")[1, ]
+dog_wv = predict(model, "dog", type = "embedding")[1, ]
+```
+
+```{r}
+cor(cat_wv, dog_wv)
+cor(car_wv, dog_wv)
+```
+
+```{r}
+plot(cat_wv, dog_wv, xlab = "cat", ylab = "dog")
+```
+
+```{r}
+plot(cat_wv, car_wv, xlab = "cat", ylab = "car")
+```
+
+
+```{r}
+vectorized_words = predict(model, tidy_dat$clean_word, 
+                           type = "embedding")
+```
+
+The result (`vectorized_docs`) is a numeric array with 300 columns and the same number of rows as the cleaned words. We'll now collapse the values into mean embeddings for each tweet. To do this we have to add (and subsequently remove the tweet id from the cleaned data)
+
+```{r}
+vectorized_words = as.data.frame(vectorized_words)
+vectorized_words$id = tidy_dat$tweetid
+
+vectorized_docs <- vectorized_words %>% 
+  drop_na() %>%
+  group_by(id) %>% 
+  summarise_all(mean, na.rm = TRUE) %>% 
+  select(-id)
+```
+
+We can now use any of the usual tools for exploring and modeling numeric data,
+
+### Cluster analysis
+
+We'll first use a K-means cluster function to group the tweets into 4 sets.
+
+```{r}
+tweet_km <- kmeans(vectorized_docs, 4)
+```
+
+We can also visualize the embeddings using other dimension reduction techniques. Here we use UMAP, a non-linear, efficient way of collapsing high-dimensional data to low (usually 2) dimensions
+
+```{r}
+library(uwot)
+viz <- umap(vectorized_docs, n_neighbors = 15, 
+            min_dist = 0.001, spread = 4, n_threads = 2)
+```
+
+This can be plotted - each point here represents an individual tweet, and the colors are the clusters we created in the previous step. Note there are quite a lot of outliers that could be potentially removed, and that one cluster is very distinct from the others. This may suggest a group of tweets that deal with different aspect of climate change. (You could plot the word cloud for these tweets to see if that shows some differences).
+
+```{r}
+library(ggplot2)
+df <- data.frame(x = viz[, 1], y = viz[, 2],
+                 cluster = as.factor(tweet_km$cluster),
+                 stringsAsFactors = FALSE)
+ggplot(df, aes(x = x, y = y, col = cluster)) +
+  geom_point() + theme_void()
+```
 
