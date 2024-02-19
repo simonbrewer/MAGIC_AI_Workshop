@@ -229,7 +229,7 @@ wordcloud(tidy_count_neg$clean_word, tidy_count_neg$n, max.words = 100)
 
 ### Sentiment analysis
 
-Next, we'll estimate the sentiment of the tweets. The data already has a column labeled `sentiment`, which is a category describing whether the tweet was for or against climate change (or neutral). Sentiment analysis is a little different from this, as it attempts to score some text based on whether the words are overall positive, neutral or negative, irrespective of the belief in or against climate change. There are several different dictionaries for sentiment analysis, some of which provide more fine grained detail. We'll use here a function from the tidytext library (`get_sentiment`), which scores sentiment values between -5 (negative) and 5 (positive) for each word. You may be prompted to download the AFINN library when running this. 
+Next, we'll estimate the sentiment of the tweets. The data already has a column labeled `sentiment`, which is a category describing whether the tweet was for or against climate change (or neutral). Sentiment analysis is a little different from this, as it attempts to score some text based on whether the words are overall positive, neutral or negative, irrespective of the belief in or against climate change. There are several different lexicons for sentiment analysis, some of which provide more fine grained detail. We'll use here a function from the tidytext library (`get_sentiment`), which scores sentiment values between -5 (negative) and 5 (positive) for each word. You may be prompted to download the AFINN library when running this. 
 
 ```{r}
 get_sentiments("afinn") %>%
