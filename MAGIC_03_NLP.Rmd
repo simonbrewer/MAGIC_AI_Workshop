@@ -260,9 +260,9 @@ To go further in the analysis of text data, we need to use a text embedding. Thi
 
 Embeddings are more complex representations of text, usually created by analyzing which words are likely to occur in similar contexts. It has a lot of similarities to principal component analysis for numeric data, in which complex data can be represented by a small number of *components* that capture correlations between the variables. For text, these means that the embedding for 'dog' and 'cat' will be similar, but 'dog' and 'car' will be dissimilar. This can then be used to explore the similarity between pieces of text, or (as we'll see below) to use text in machine learning models. These embeddings are a key part of large language models (e.g. ChatGPT), where they are used to relate prompts or questions to the appropriate text that makes up a response. 
 
-While it's possible to create your own embedding (which is useful for specific projects), this can be quite time consuming, and can require a substantial amount of text. In the example we'll use below, we'll use an embedding that was created using a model called Word2Vec and trained using Google news articles. You can download the file that contained the embedding here:
+While it's possible to create your own embedding (which is useful for specific projects), this can be quite time consuming, and can require a substantial amount of text. In the example we'll use below, we'll use an embedding that was created using a model called Word2Vec and trained using Google news articles. You can download the file that contains the embedding weights from the Google Drive folder:
 
-https://www.kaggle.com/datasets/leadbest/googlenewsvectorsnegative300
+https://drive.google.com/drive/folders/1GMEY1fYEj1YMI__u3hU4y6agnrz3ekna?usp=drive_link
 
 A good selection of alternative, pre-trained embeddings can be found at Hugging Face:
 
