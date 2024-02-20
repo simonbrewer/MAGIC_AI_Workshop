@@ -43,6 +43,10 @@ output:
 
 # Data
 
+Workshop Google Drive:
+https://drive.google.com/drive/folders/1GMEY1fYEj1YMI__u3hU4y6agnrz3ekna?usp=sharing
+
+
 All files for the exercises can be found [here][gdrive]
 
 # Colab notebooks
@@ -65,3 +69,4 @@ https://drive.google.com/file/d/1tgcHQvWaYYWk71O3qMJDeTJ3KzdlKUhe/view?usp=shari
 [NLP_C]: https://drive.google.com/file/d/1tgcHQvWaYYWk71O3qMJDeTJ3KzdlKUhe/view?usp=sharing
 [gilbert]: https://geology.utah.gov/map-pub/survey-notes/geosights/g-k-gilbert-geologic-view-park/
 [gdrive]: https://drive.google.com/drive/folders/1lp79wJvtis-SDQ2pbZ4Ecgb4CEEawV-Q?usp=drive_link
+[wshop]: https://drive.google.com/drive/folders/1GMEY1fYEj1YMI__u3hU4y6agnrz3ekna?usp=sharing
