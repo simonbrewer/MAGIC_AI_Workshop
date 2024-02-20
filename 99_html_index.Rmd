@@ -43,9 +43,7 @@ output:
 
 # Data
 
-Workshop Google Drive:
-https://drive.google.com/drive/folders/1GMEY1fYEj1YMI__u3hU4y6agnrz3ekna?usp=sharing
-
+General workshop [Google Drive][wshop]
 
 All files for the exercises can be found [here][gdrive]
 
